@@ -3,9 +3,9 @@
 // Harap sesuaikan detail koneksi ini dengan pengaturan server database Anda.
 
 define('DB_HOST', 'localhost');
-define('DB_USER', 'u767676268_bimbingan');
-define('DB_PASS', 'CiP300383#');
-define('DB_NAME', 'u767676268_bimbingan');
+define('DB_USER', 'bimbingan');
+define('DB_PASS', 'password');
+define('DB_NAME', 'bimbingan');
 
 // Matikan pelaporan galat default untuk penanganan manual
 mysqli_report(MYSQLI_REPORT_OFF);
