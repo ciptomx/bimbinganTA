@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Analisis Akademik</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for creating charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for parsing CSV files -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 100%;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-300 antialiased">
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <svg class="animate-spin h-10 w-10 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="mt-4 text-lg font-semibold text-slate-300">Menganalisis dan memuat data...</p>
+    </div>
+
+    <div class="min-h-screen flex flex-col lg:flex-row">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full lg:w-64 bg-slate-800 p-6 lg:sticky lg:top-0 lg:h-screen">
+            <h1 class="text-2xl font-bold text-white mb-8">Analisis Akademik</h1>
+            <nav class="space-y-4">
+                <a href="#overview" class="flex items-center px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    Ringkasan
+                </a>
+                <a href="#dosen" class="flex items-center px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                    Analisis Dosen
+                </a>
+                <a href="#topik" class="flex items-center px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                    Analisis Topik
+                </a>
+                <a href="#mahasiswa" class="flex items-center px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
+                    Data Mahasiswa
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 lg:p-10 space-y-10">
+            <!-- Section: Overview -->
+            <section id="overview">
+                <h2 class="text-3xl font-bold text-white mb-6">Ringkasan Dasbor</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- KPI Cards -->
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-4">
+                        <div class="bg-sky-500/20 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg></div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Total Mahasiswa</p>
+                            <p id="total-mahasiswa" class="text-2xl font-bold text-white">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-4">
+                         <div class="bg-emerald-500/20 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg></div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Sudah Lulus</p>
+                            <p id="sudah-lulus" class="text-2xl font-bold text-white">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-4">
+                        <div class="bg-amber-500/20 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg></div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Belum Lulus</p>
+                            <p id="belum-lulus" class="text-2xl font-bold text-white">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-4">
+                        <div class="bg-indigo-500/20 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg></div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Total Dosen</p>
+                            <p id="total-dosen" class="text-2xl font-bold text-white">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-3 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Distribusi Durasi Studi (Tahun)</h3>
+                        <div class="chart-container"><canvas id="durationChart"></canvas></div>
+                    </div>
+                    <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                        <h3 class="text-xl font-semibold text-white mb-4">Status Kelulusan Mahasiswa</h3>
+                        <div class="chart-container"><canvas id="statusChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section: Lecturer Analysis -->
+            <section id="dosen">
+                <h2 class="text-3xl font-bold text-white mb-6 pt-10">Analisis Beban Kerja Dosen</h2>
+                <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <div class="chart-container" style="height: 60vh;"><canvas id="workloadChart"></canvas></div>
+                </div>
+            </section>
+
+            <!-- Section: Topic Analysis -->
+            <section id="topik">
+                <h2 class="text-3xl font-bold text-white mb-6 pt-10">Analisis Topik Skripsi Populer</h2>
+                 <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <h3 class="text-xl font-semibold text-white mb-4">Frekuensi Kata Kunci pada Judul</h3>
+                    <div class="chart-container" style="height: 60vh;"><canvas id="topicChart"></canvas></div>
+                </div>
+            </section>
+
+            <!-- Section: Student Data Table -->
+            <section id="mahasiswa">
+                <h2 class="text-3xl font-bold text-white mb-6 pt-10">Data Mahasiswa</h2>
+                <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                        <input type="text" id="searchInput" placeholder="Cari Nama atau NIM..." class="w-full md:w-1/3 bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <select id="lecturerFilter" class="w-full md:w-1/3 bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <option value="">Semua Dosen</option>
+                        </select>
+                        <select id="statusFilter" class="w-full md:w-1/4 bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <option value="">Semua Status</option>
+                            <option value="Lulus">Lulus</option>
+                            <option value="Belum Lulus">Belum Lulus</option>
+                            <option value="Data Tidak Lengkap">Data Tidak Lengkap</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-400">
+                            <thead class="text-xs text-slate-300 uppercase bg-slate-700">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">NIM</th>
+                                    <th scope="col" class="px-6 py-3">Nama Mahasiswa</th>
+                                    <th scope="col" class="px-6 py-3">Pembimbing 1 & 2</th>
+                                    <th scope="col" class="px-6 py-3">Penguji 1 & 2</th>
+                                    <th scope="col" class="px-6 py-3">Status</th>
+                                    <th scope="col" class="px-6 py-3">Durasi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body">
+                                <!-- Rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Chart.js global configuration for dark theme
+    Chart.defaults.color = 'rgba(203, 213, 225, 0.8)';
+    Chart.defaults.borderColor = 'rgba(100, 116, 139, 0.5)';
+
+    const lecturerMap = {
+        'ASR': 'Asrul Abdullah, S.Kom., M.Cs',
+        'SCP': 'Sucipto, M.Kom',
+        'BRY': 'Barry Ceasar Octariadi, S.Kom., M.Cs',
+        'SYF': 'Syf Putri Agustini Alkadri, S.T., M.Kom',
+        'ALD': 'Alda Cendekia Siregar, S.Kom., M.Cs',
+        'WHD': 'Rachmat Wahid Saleh Insani, S.Kom., M.Cs',
+        'ISTI': 'Istikoma, B.Sc., M.IT',
+        // Add other mappings as discovered
+    };
+    
+    // Normalize lecturer names to their initials for consistent processing
+    const reverseLecturerMap = {};
+    for (const key in lecturerMap) {
+        // Normalize name: lowercase, remove titles and punctuation
+        const normalizedName = lecturerMap[key]
+            .toLowerCase()
+            .replace(/, s\.kom\.|, m\.cs|, s\.t\.|, m\.kom|, b\.sc\.|, m\.it/g, '')
+            .replace(/\./g, '')
+            .trim();
+        reverseLecturerMap[normalizedName] = key;
+    }
+    
+    const state = {
+        students: new Map(),
+        lecturers: {},
+        charts: {},
+        filters: {
+            search: '',
+            lecturer: '',
+            status: '',
+        }
+    };
+
+    // Function to normalize lecturer names from the CSV files
+    function getLecturerInitial(name) {
+        if (!name || typeof name !== 'string') return null;
+        if (lecturerMap[name.trim().toUpperCase()]) return name.trim().toUpperCase();
+        
+        const normalizedName = name
+            .toLowerCase()
+            .replace(/, s\.kom\.|, m\.cs|, s\.t\.|, m\.kom|, b\.sc\.|, m\.it/g, '')
+            .replace(/\./g, '')
+            .trim();
+            
+        return reverseLecturerMap[normalizedName] || name.trim();
+    }
+    
+    // Function to parse a single CSV file using PapaParse
+    async function parseCSV(url) {
+        return new Promise((resolve, reject) => {
+            Papa.parse(url, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: results => resolve(results.data),
+                error: error => reject(new Error(`Failed to parse ${url}: ${error.message}`)),
+            });
+        });
+    }
+
+    // Main function to load and process all data
+    async function loadAndProcessData() {
+        try {
+            // FIX: Added the fourth CSV file to the array.
+            // Ensure this filename matches your actual data file.
+            const files = [
+                'Pembimbing_dan_penguji.csv',
+                'Sudah_Lulus.csv',
+                'Bimbingan_Belum_Lulus.csv'
+            ];
+            
+            const [mainData, graduatedData, notGraduatedData, summaryData] = await Promise.all(files.map(parseCSV));
+
+            // Process main data file
+            if (mainData) {
+                mainData.forEach(row => {
+                    const nim = row.NIM ? row.NIM.trim() : null;
+                    if (nim && !state.students.has(nim)) {
+                        state.students.set(nim, {
+                            nim: nim,
+                            name: row.Mahasiswa,
+                            title: row.Judul,
+                            p1: getLecturerInitial(row['Pembimbing 1']),
+                            p2: getLecturerInitial(row['Pembimbing 2']),
+                            u1: getLecturerInitial(row['Penguji 1']),
+                            u2: getLecturerInitial(row['Penguji 2']),
+                            skDate: row['Tanggal SK Pembimbing'] ? new Date(row['Tanggal SK Pembimbing']) : null,
+                            passDate: row['Tanggal Sidang /Lulus '] ? new Date(row['Tanggal Sidang /Lulus ']) : null,
+                            status: 'Data Tidak Lengkap'
+                        });
+                    }
+                });
+            }
+
+            // Update status from graduated and not graduated files
+            if(graduatedData) {
+                graduatedData.forEach(row => {
+                    const nim = row.NIM ? row.NIM.trim() : null;
+                    if (nim && state.students.has(nim)) {
+                        const student = state.students.get(nim);
+                        student.status = 'Lulus';
+                        if(!student.passDate && row['Tanggal Sidang /Lulus ']) {
+                            student.passDate = new Date(row['Tanggal Sidang /Lulus ']);
+                        }
+                    }
+                });
+            }
+
+            if (notGraduatedData) {
+                notGraduatedData.forEach(row => {
+                    const nim = row.NIM ? row.NIM.trim() : null;
+                    if (nim && state.students.has(nim)) {
+                         state.students.get(nim).status = 'Belum Lulus';
+                    } else if (nim) { // Add if not in main list
+                         state.students.set(nim, {
+                            nim: nim,
+                            name: row.Mahasiswa,
+                            title: row.Judul,
+                            p1: getLecturerInitial(row['Pembimbing 1']),
+                            p2: getLecturerInitial(row['Pembimbing 2']),
+                            u1: getLecturerInitial(row['Penguji 1']),
+                            u2: getLecturerInitial(row['Penguji 2']),
+                            skDate: row['Tanggal SK Pembimbing'] ? new Date(row['Tanggal SK Pembimbing']) : null,
+                            passDate: null,
+                            status: 'Belum Lulus'
+                        });
+                    }
+                });
+            }
+
+            // Integrate summary data - This will now work because summaryData is defined.
+            if(summaryData) {
+                summaryData.forEach(row => {
+                     const nim = row.NIM ? row.NIM.trim() : null;
+                     if (nim && !state.students.has(nim)) {
+                         state.students.set(nim, {
+                            nim: nim,
+                            name: row.NAMA,
+                            title: 'N/A',
+                            p1: row.P1, p2: row.P2, u1: row.U1, u2: row.U2,
+                            skDate: null, passDate: null,
+                            status: 'Data Tidak Lengkap'
+                         });
+                     }
+                });
+            }
+
+            calculateStatistics();
+            renderAll();
+            
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.display = 'none';
+            }, 300);
+
+        } catch (error) {
+            console.error("Error loading or parsing data:", error);
+            document.getElementById('loading-overlay').innerHTML = `<p class="text-lg font-semibold text-red-500">Gagal memuat data. Periksa nama file dan konsol untuk detail.<br><small>${error.message}</small></p>`;
+        }
+    }
+    
+    function calculateStatistics() {
+        const lecturers = {};
+        
+        // Initialize lecturer stats
+        Object.keys(lecturerMap).forEach(key => {
+            lecturers[key] = { name: lecturerMap[key], p1: 0, p2: 0, u: 0, total: 0 };
+        });
+
+        state.students.forEach(student => {
+            // Calculate duration
+            if (student.skDate instanceof Date && !isNaN(student.skDate) && 
+                student.passDate instanceof Date && !isNaN(student.passDate) && student.passDate > student.skDate) {
+                const diffTime = Math.abs(student.passDate - student.skDate);
+                student.duration = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+            } else {
+                student.duration = null;
+            }
+
+            // Tally lecturer workload
+            ['p1', 'p2', 'u1', 'u2'].forEach((role, index) => {
+                const initial = student[role];
+                if (initial && lecturers[initial]) {
+                    if (role.startsWith('p')) { // p1 or p2
+                        lecturers[initial][role]++;
+                    } else { // u1 or u2
+                        lecturers[initial].u++;
+                    }
+                    lecturers[initial].total++;
+                }
+            });
+        });
+        state.lecturers = lecturers;
+    }
+
+    function renderAll() {
+        renderKPIs();
+        renderStatusChart();
+        renderDurationChart();
+        renderWorkloadChart();
+        renderTopicChart();
+        populateFilters();
+        renderStudentTable();
+    }
+
+    function renderKPIs() {
+        const studentArray = Array.from(state.students.values());
+        const graduatedCount = studentArray.filter(s => s.status === 'Lulus').length;
+        const notGraduatedCount = studentArray.filter(s => s.status === 'Belum Lulus').length;
+        
+        document.getElementById('total-mahasiswa').textContent = state.students.size;
+        document.getElementById('sudah-lulus').textContent = graduatedCount;
+        document.getElementById('belum-lulus').textContent = notGraduatedCount;
+        document.getElementById('total-dosen').textContent = Object.keys(state.lecturers).length;
+    }
+    
+    function renderStatusChart() {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        const studentArray = Array.from(state.students.values());
+        const graduatedCount = studentArray.filter(s => s.status === 'Lulus').length;
+        const notGraduatedCount = studentArray.filter(s => s.status === 'Belum Lulus').length;
+        const otherCount = state.students.size - graduatedCount - notGraduatedCount;
+
+        if (state.charts.status) state.charts.status.destroy();
+        state.charts.status = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Lulus', 'Belum Lulus', 'Data Tidak Lengkap'],
+                datasets: [{
+                    label: 'Status Mahasiswa',
+                    data: [graduatedCount, notGraduatedCount, otherCount],
+                    backgroundColor: ['#22c55e', '#f59e0b', '#64748b'],
+                    borderColor: '#1e293b',
+                    borderWidth: 4,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    function renderDurationChart() {
+        const ctx = document.getElementById('durationChart').getContext('2d');
+        const durations = Array.from(state.students.values())
+                                .map(s => s.duration)
+                                .filter(d => d !== null);
+        
+        const bins = { '< 1': 0, '1-2': 0, '2-3': 0, '3-4': 0, '> 4': 0 };
+        durations.forEach(d => {
+            if (d < 1) bins['< 1']++;
+            else if (d <= 2) bins['1-2']++;
+            else if (d <= 3) bins['2-3']++;
+            else if (d <= 4) bins['3-4']++;
+            else bins['> 4']++;
+        });
+
+        if (state.charts.duration) state.charts.duration.destroy();
+        state.charts.duration = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(bins),
+                datasets: [{
+                    label: 'Jumlah Mahasiswa',
+                    data: Object.values(bins),
+                    backgroundColor: '#0ea5e9',
+                    borderColor: '#0284c7',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.2)' } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function renderWorkloadChart() {
+        const ctx = document.getElementById('workloadChart').getContext('2d');
+        const sortedLecturers = Object.entries(state.lecturers).sort(([, a], [, b]) => b.total - a.total);
+        
+        const labels = sortedLecturers.map(([key]) => key);
+        const p1Data = sortedLecturers.map(([, data]) => data.p1);
+        const p2Data = sortedLecturers.map(([, data]) => data.p2);
+        const uData = sortedLecturers.map(([, data]) => data.u);
+
+        if (state.charts.workload) state.charts.workload.destroy();
+        state.charts.workload = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Pembimbing 1', data: p1Data, backgroundColor: '#38bdf8', borderRadius: 5 },
+                    { label: 'Pembimbing 2', data: p2Data, backgroundColor: '#a78bfa', borderRadius: 5 },
+                    { label: 'Penguji', data: uData, backgroundColor: '#4ade80', borderRadius: 5 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    x: { stacked: true, grid: { display: false } }, 
+                    y: { stacked: true, grid: { color: 'rgba(100, 116, 139, 0.2)' } }
+                },
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+    }
+
+    function renderTopicChart() {
+        const ctx = document.getElementById('topicChart').getContext('2d');
+        const wordCount = {};
+        const stopWords = new Set(['di', 'dan', 'dengan', 'pada', 'untuk', 'menggunakan', 'berbasis', 'studi', 'kasus', 'sistem', 'metode', 'analisis', 'perancangan', 'implementasi', 'aplikasi', 'rancang', 'bangun', 'dalam']);
+
+        state.students.forEach(s => {
+            if (s.title && s.title.toLowerCase() !== 'n/a') {
+                const words = s.title.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+                words.forEach(word => {
+                    if (word.length > 3 && !stopWords.has(word)) {
+                        wordCount[word] = (wordCount[word] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        const sortedTopics = Object.entries(wordCount).sort(([,a], [,b]) => b - a).slice(0, 20);
+        const labels = sortedTopics.map(item => item[0]);
+        const data = sortedTopics.map(item => item[1]);
+
+        if (state.charts.topic) state.charts.topic.destroy();
+        state.charts.topic = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Frekuensi Kata',
+                    data: data,
+                    backgroundColor: '#6366f1',
+                    borderColor: '#4f46e5',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { grid: { display: false } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function populateFilters() {
+        const lecturerFilter = document.getElementById('lecturerFilter');
+        // Clear previous options before populating
+        lecturerFilter.innerHTML = '<option value="">Semua Dosen</option>';
+        const sortedLecturers = Object.entries(state.lecturers).sort(([,a],[,b]) => a.name.localeCompare(b.name));
+        
+        sortedLecturers.forEach(([initial, data]) => {
+            const option = document.createElement('option');
+            option.value = initial;
+            option.textContent = `${initial} - ${data.name}`;
+            lecturerFilter.appendChild(option);
+        });
+    }
+
+    function renderStudentTable() {
+        const tbody = document.getElementById('student-table-body');
+        tbody.innerHTML = ''; // Clear existing rows
+        
+        const filteredStudents = Array.from(state.students.values()).filter(s => {
+            const searchLower = state.filters.search.toLowerCase();
+            const searchMatch = !searchLower || (s.name && s.name.toLowerCase().includes(searchLower)) || (s.nim && s.nim.includes(searchLower));
+            const lecturerMatch = !state.filters.lecturer || [s.p1, s.p2, s.u1, s.u2].includes(state.filters.lecturer);
+            const statusMatch = !state.filters.status || s.status === state.filters.status;
+            return searchMatch && lecturerMatch && statusMatch;
+        });
+
+        if (filteredStudents.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center">Tidak ada data yang cocok.</td></tr>`;
+            return;
+        }
+
+        filteredStudents.slice(0, 100).forEach(s => { // Limit to 100 rows for performance
+            const row = document.createElement('tr');
+            row.className = 'bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50';
+            
+            const statusColorClass = s.status === 'Lulus' ? 'text-emerald-400' : (s.status === 'Belum Lulus' ? 'text-amber-400' : 'text-slate-500');
+
+            row.innerHTML = `
+                <td class="px-6 py-4 font-medium text-slate-300">${s.nim || 'N/A'}</td>
+                <td class="px-6 py-4 text-white">${s.name || 'N/A'}<br><small class="text-slate-400">${s.title || 'Judul tidak tersedia'}</small></td>
+                <td class="px-6 py-4">${s.p1 || '-'}<br>${s.p2 || '-'}</td>
+                <td class="px-6 py-4">${s.u1 || '-'}<br>${s.u2 || '-'}</td>
+                <td class="px-6 py-4"><span class="font-semibold ${statusColorClass}">${s.status || 'N/A'}</span></td>
+                <td class="px-6 py-4">${s.duration ? s.duration.toFixed(2) + ' thn' : 'N/A'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // Event Listeners for filters
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        state.filters.search = e.target.value;
+        renderStudentTable();
+    });
+    document.getElementById('lecturerFilter').addEventListener('change', (e) => {
+        state.filters.lecturer = e.target.value;
+        renderStudentTable();
+    });
+    document.getElementById('statusFilter').addEventListener('change', (e) => {
+        state.filters.status = e.target.value;
+        renderStudentTable();
+    });
+
+    // Initial load
+    loadAndProcessData();
+});
+</script>
+</body>
+</html>
+
